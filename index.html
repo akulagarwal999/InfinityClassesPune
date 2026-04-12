@@ -973,6 +973,7 @@
                     e.preventDefault();
                     enrollModal.classList.add('active');
                     document.body.style.overflow = 'hidden';
+                    if (window.lenis) window.lenis.stop(); // Pause smooth scroll
                 });
             });
         });
@@ -980,6 +981,7 @@
         function closeEnrollModal() {
             document.getElementById('enroll').classList.remove('active');
             document.body.style.overflow = '';
+            if (window.lenis) window.lenis.start(); // Resume smooth scroll
         }
 
         // 7. Lightbox Modal Logic
@@ -991,12 +993,14 @@
             videoModal.classList.add('active');
             modalIframe.src = "https://www.youtube-nocookie.com/embed/OFq3VckdcyE?autoplay=1";
             document.body.style.overflow = 'hidden';
+            if (window.lenis) window.lenis.stop();
         }
 
         function closeModal() {
             videoModal.classList.remove('active');
             modalIframe.src = "";
             document.body.style.overflow = '';
+            if (window.lenis) window.lenis.start();
         }
 
         // 8. Custom Intro Logic

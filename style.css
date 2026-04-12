@@ -1160,9 +1160,11 @@ section {
 /* Specific fix for Enrollment Form Modal to be scrollable */
 .enquiry-modal-content {
     background: #ffffff !important;
-    max-height: 95vh;
+    max-height: 90vh;
+    height: auto;
     overflow-y: auto !important;
     padding: 0;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal.active .modal-content { transform: scale(1); }
