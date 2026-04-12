@@ -972,12 +972,14 @@
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
                     enrollModal.classList.add('active');
+                    document.body.style.overflow = 'hidden';
                 });
             });
         });
 
         function closeEnrollModal() {
             document.getElementById('enroll').classList.remove('active');
+            document.body.style.overflow = '';
         }
 
         // 7. Lightbox Modal Logic
@@ -988,11 +990,13 @@
             e.preventDefault();
             videoModal.classList.add('active');
             modalIframe.src = "https://www.youtube-nocookie.com/embed/OFq3VckdcyE?autoplay=1";
+            document.body.style.overflow = 'hidden';
         }
 
         function closeModal() {
             videoModal.classList.remove('active');
             modalIframe.src = "";
+            document.body.style.overflow = '';
         }
 
         // 8. Custom Intro Logic

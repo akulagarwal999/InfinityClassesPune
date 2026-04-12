@@ -1142,15 +1142,27 @@ section {
 
 .modal-content {
     position: relative;
-    width: 90%;
+    width: 95%;
     max-width: 900px;
-    aspect-ratio: 16/9;
     background: #000;
     border-radius: 12px;
     overflow: hidden;
     z-index: 2001;
     transform: scale(0.95);
     transition: transform 0.3s ease;
+}
+
+/* Specific fix for Video Modal to keep 16:9 */
+#videoModal .modal-content {
+    aspect-ratio: 16/9;
+}
+
+/* Specific fix for Enrollment Form Modal to be scrollable */
+.enquiry-modal-content {
+    background: #ffffff !important;
+    max-height: 95vh;
+    overflow-y: auto !important;
+    padding: 0;
 }
 
 .modal.active .modal-content { transform: scale(1); }
