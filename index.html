@@ -1168,8 +1168,17 @@
             const container = document.getElementById('testimonialsGrid');
             if (!container) return;
             container.innerHTML = '';
+            
+            const seenReviewers = new Set();
+            
             snap.forEach(docSnap => {
                 const d = docSnap.data();
+                
+                // Deduplicate by reviewer name to handle multi-seed overlaps perfectly
+                const rName = (d.reviewerName || '').trim().toLowerCase();
+                if (seenReviewers.has(rName)) return; 
+                seenReviewers.add(rName);
+
                 const starsHtml = Array.from({ length: 5 }, (_, i) =>
                     `<span class="star ${i < (d.stars || 5) ? 'filled' : ''}">★</span>`
                 ).join('');
