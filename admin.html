@@ -508,6 +508,15 @@
             border: 3px solid var(--accent); margin-bottom: 12px;
         }
 
+        /* ═══ DRAG & DROP ═══ */
+        .admin-gallery-img-wrapper { transition: transform 0.2s, opacity 0.2s, border 0.2s; }
+        .admin-gallery-img-wrapper.drag-over {
+            transform: scale(0.95);
+            opacity: 0.8;
+            border: 2px dashed var(--accent);
+            border-radius: var(--radius-sm);
+        }
+
         /* ═══ STAT CARDS ═══ */
         .stats-row {
             display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1316,7 +1325,12 @@
                 let imagesHtml = '';
                 images.forEach((url, index) => {
                     imagesHtml += `
-                        <div class="admin-gallery-img-wrapper">
+                        <div class="admin-gallery-img-wrapper" draggable="true" 
+                             ondragstart="window.handleDragStart(event, '${d.id}', ${index})"
+                             ondragover="window.handleDragOver(event)"
+                             ondragenter="window.handleDragEnter(event)"
+                             ondragleave="window.handleDragLeave(event)"
+                             ondrop="window.handleDrop(event, '${d.id}', ${index})">
                             <img src="${url}" alt="Gallery image">
                             <button class="admin-gallery-img-del" onclick="deleteGalleryImage('${d.id}', ${index})" title="Remove image">
                                 <i class="fas fa-times"></i>
@@ -1474,6 +1488,65 @@
 
         window.editUpdate = async (id) => { const s = await window.CMS.get('updates',id); if(s.exists()) showUpdateForm(s.data(),id); };
         window.deleteUpdate = async (id) => { if(!confirm('Delete?'))return; await window.CMS.remove('updates',id); showToast('Deleted.'); loadUpdatesPanel(); };
+
+        /* ══════════════════════════════════
+         * DRAG AND DROP REORDERING
+         * ══════════════════════════════════ */
+        window.draggedImageInfo = null;
+
+        window.handleDragStart = function(e, sectionId, index) {
+            window.draggedImageInfo = { sectionId, index };
+            e.dataTransfer.effectAllowed = 'move';
+            // Slight delay so the drag image generates before hiding the real element (optional)
+        };
+
+        window.handleDragOver = function(e) {
+            e.preventDefault(); // Necessary to allow dropping
+            e.dataTransfer.dropEffect = 'move';
+        };
+
+        window.handleDragEnter = function(e) {
+            e.preventDefault();
+            const wrapper = e.target.closest('.admin-gallery-img-wrapper');
+            if (wrapper) wrapper.classList.add('drag-over');
+        };
+
+        window.handleDragLeave = function(e) {
+            const wrapper = e.target.closest('.admin-gallery-img-wrapper');
+            if (wrapper) wrapper.classList.remove('drag-over');
+        };
+
+        window.handleDrop = async function(e, dropSectionId, dropIndex) {
+            e.preventDefault();
+            const wrapper = e.target.closest('.admin-gallery-img-wrapper');
+            if (wrapper) wrapper.classList.remove('drag-over');
+
+            const dragInfo = window.draggedImageInfo;
+            if (!dragInfo || dragInfo.sectionId !== dropSectionId || dragInfo.index === dropIndex) {
+                window.draggedImageInfo = null;
+                return;
+            }
+
+            try {
+                const snap = await window.CMS.get('gallery', dropSectionId);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    const images = data.images || [];
+                    
+                    // Reorder array
+                    const [movedImage] = images.splice(dragInfo.index, 1);
+                    images.splice(dropIndex, 0, movedImage);
+                    
+                    await window.CMS.update('gallery', dropSectionId, { images });
+                    showToast('Reordered instantly.', 'success');
+                    loadGalleryPanel();
+                }
+            } catch (err) {
+                showToast('Reordering failed.', 'error');
+                console.error(err);
+            }
+            window.draggedImageInfo = null;
+        };
 
     </script>
 </body>
