@@ -1013,7 +1013,6 @@ section {
     gap: clamp(2rem, 4vw, 4rem);
     background: var(--bg-light);
     border-radius: 24px;
-    overflow: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
     padding: clamp(2.5rem, 5vw, 4rem);
 }
@@ -1121,8 +1120,11 @@ section {
     height: 100%;
     z-index: 2000;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    overflow-y: auto;
+    padding: 2.5rem 10px;
+    overscroll-behavior: contain;
     opacity: 0;
     visibility: hidden;
     transition: var(--transition);
@@ -1137,6 +1139,7 @@ section {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.85);
+    position: fixed;
     cursor: pointer;
 }
 
@@ -1160,11 +1163,13 @@ section {
 /* Specific fix for Enrollment Form Modal to be scrollable */
 .enquiry-modal-content {
     background: #ffffff !important;
-    max-height: 90vh;
-    height: auto;
-    overflow-y: auto !important;
-    padding: 0;
+    height: auto !important;
+    padding: 0 !important;
     -webkit-overflow-scrolling: touch;
+    max-width: 1000px !important;
+    aspect-ratio: auto !important;
+    border-radius: 24px;
+    margin: auto;
 }
 
 .modal.active .modal-content { transform: scale(1); }
@@ -1294,14 +1299,7 @@ section {
 }
 
 /* Specific Enquiry Modal Overrides */
-.enquiry-modal-content {
-    aspect-ratio: auto !important;
-    background: transparent !important;
-    max-width: 1000px !important;
-    padding: 0 !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-}
+
 
 .enquiry-modal-close {
     top: 20px !important;
@@ -1560,14 +1558,7 @@ section {
     background: var(--bg-tint) !important;
 }
 
-.enquiry-modal-content {
-    aspect-ratio: auto !important;
-    background: transparent !important;
-    max-width: 1000px !important;
-    padding: 0 !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-}
+
 
 .enquiry-modal-close {
     top: 20px !important;
