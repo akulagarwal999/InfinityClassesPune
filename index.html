@@ -38,6 +38,12 @@
     <link rel="stylesheet" href="liquid-patches.css">
 
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Performance Hints -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://www.gstatic.com">
+    <link rel="dns-prefetch" href="https://www.youtube.com">
 </head>
 
 <body>
@@ -439,12 +445,11 @@
             </div>
 
             <div class="video-container">
-                <div class="video-embed-wrapper" data-aos="fade-right" data-aos-delay="150">
-                    <iframe src="https://www.youtube.com/embed/aYmI0tIK9J4"
-                        title="Infinity Classes Pune — Classroom Glimpse" class="video-embed-iframe"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowfullscreen>
-                    </iframe>
+                <div class="video-embed-wrapper" data-aos="fade-right" data-aos-delay="150" id="youtube-facade" style="position:relative; cursor:pointer; background:#000; border-radius:16px; overflow:hidden;">
+                    <img src="https://img.youtube.com/vi/aYmI0tIK9J4/maxresdefault.jpg" alt="Video Poster" style="width:100%; display:block; opacity:0.8;">
+                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:68px; height:48px; background:rgba(255,0,0,0.9); border-radius:12px; display:flex; align-items:center; justify-content:center; color:white; font-size:24px;">
+                        <i class="fas fa-play"></i>
+                    </div>
                 </div>
                 <div class="video-text-content" data-aos="fade-left" data-aos-delay="200">
                     <h3>Real classrooms. Real students. Real results.</h3>
@@ -776,39 +781,36 @@
     <!-- Liquid Cursor Blob -->
     <div id="cursor-blob"></div>
     <!-- Premium Patches Script -->
-    <script src="liquid-patches.js"></script>
+    <script src="liquid-patches.js" defer></script>
 
     <!-- Custom JS -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-
-            // 1. Initialize AOS
+            // 1. Initialize AOS (Disabled on mobile for performance)
             AOS.init({
                 duration: 700,
                 once: true,
-                offset: 50
+                offset: 50,
+                disable: window.innerWidth < 768
             });
 
-            // 2. Navbar Scroll Effect
+            // 2. Navbar Scroll Effect (Passive)
             const navbar = document.getElementById('navbar');
             window.addEventListener('scroll', () => {
-                if (window.scrollY > 50) {
-                    navbar.classList.add('nav-scrolled');
-                } else {
-                    navbar.classList.remove('nav-scrolled');
+                const scrolled = window.scrollY > 50;
+                if (navbar.classList.contains('nav-scrolled') !== scrolled) {
+                    navbar.classList.toggle('nav-scrolled', scrolled);
                 }
-            });
+            }, { passive: true });
 
-            // 3. Mobile Hamburger Toggle (Smooth Slide Down)
+            // 3. Mobile Hamburger Toggle
             const hamburger = document.getElementById('hamburger');
             const navLinksContainer = document.getElementById('navLinks');
-
             hamburger.addEventListener('click', () => {
                 navLinksContainer.classList.toggle('active');
                 navbar.classList.toggle('mobile-open');
             });
 
-            // Close mobile menu when link is clicked
             const navLinks = document.querySelectorAll('.nav-links a');
             navLinks.forEach(link => {
                 link.addEventListener('click', () => {
@@ -817,12 +819,10 @@
                 });
             });
 
-            // 4. Smooth Counter Animation on scroll
+            // 4. Smooth Counter Animation
             const counters = document.querySelectorAll('.hero-stat-value');
             let hasAnimated = false;
-
-            const observerOpts = { root: null, threshold: 0.5 };
-            const statObserver = new IntersectionObserver((entries, observer) => {
+            const statObserver = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting && !hasAnimated) {
                         hasAnimated = true;
@@ -830,124 +830,110 @@
                             if (counter.hasAttribute('data-target')) {
                                 const target = +counter.getAttribute('data-target');
                                 const suffix = counter.getAttribute('data-suffix') || '';
+                                const startTime = performance.now();
                                 const duration = 2000;
-                                const increment = target / (duration / 16);
-                                let current = 0;
 
-                                const updateCounter = () => {
-                                    current += increment;
-                                    if (current < target) {
-                                        counter.innerText = Math.ceil(current) + suffix;
-                                        requestAnimationFrame(updateCounter);
-                                    } else {
-                                        counter.innerText = target + suffix;
-                                    }
+                                const updateCounter = (now) => {
+                                    const elapsed = now - startTime;
+                                    const progress = Math.min(elapsed / duration, 1);
+                                    const current = Math.floor(progress * target);
+                                    counter.innerText = current + suffix;
+                                    if (progress < 1) requestAnimationFrame(updateCounter);
+                                    else counter.innerText = target + suffix;
                                 };
-                                updateCounter();
+                                requestAnimationFrame(updateCounter);
                             }
                         });
                     }
                 });
-            }, observerOpts);
-
+            }, { threshold: 0.5 });
             const statsSection = document.querySelector('.hero-stats-strip');
             if (statsSection) statObserver.observe(statsSection);
 
-            // 5. Course Filtering Logic (Functional)
+            // 5. Course Filtering (Debounced)
             const searchInput = document.getElementById('courseSearch');
-            const courseCards = document.querySelectorAll('.course-card');
             const noResults = document.getElementById('noResults');
-
             if (searchInput) {
-                searchInput.addEventListener('keyup', (e) => {
-                    const query = e.target.value.toLowerCase();
-                    let matchCount = 0;
-
-                    courseCards.forEach(card => {
-                        const searchableTitle = card.getAttribute('data-title') || '';
-                        if (searchableTitle.toLowerCase().includes(query)) {
-                            card.style.display = 'flex';
-                            setTimeout(() => { card.style.opacity = '1'; }, 10);
-                            matchCount++;
-                        } else {
-                            card.style.opacity = '0';
-                            setTimeout(() => { card.style.display = 'none'; }, 300);
-                        }
-                    });
-
-                    if (matchCount === 0) {
-                        setTimeout(() => { noResults.style.display = 'block'; }, 300);
-                    } else {
-                        noResults.style.display = 'none';
-                    }
+                let timeout;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        const query = e.target.value.toLowerCase();
+                        let matchCount = 0;
+                        document.querySelectorAll('.course-card').forEach(card => {
+                            const title = card.getAttribute('data-title') || '';
+                            const matches = title.toLowerCase().includes(query);
+                            card.style.display = matches ? 'flex' : 'none';
+                            if (matches) matchCount++;
+                        });
+                        noResults.style.display = matchCount === 0 ? 'block' : 'none';
+                    }, 200);
                 });
             }
 
-            // 6. Carousel Scroll Logic
-            const track = document.getElementById('carouselTrack');
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
+            // 6. Carousels
+            const setupTrack = (trackId, leftBtnId, rightBtnId, step) => {
+                const track = document.getElementById(trackId);
+                const prev = document.getElementById(leftBtnId);
+                const next = document.getElementById(rightBtnId);
+                if (track && prev && next) {
+                    prev.addEventListener('click', () => track.scrollBy({ left: -step, behavior: 'smooth' }));
+                    next.addEventListener('click', () => track.scrollBy({ left: step, behavior: 'smooth' }));
+                }
+            };
+            setupTrack('carouselTrack', 'prevBtn', 'nextBtn', 330);
+            setupTrack('facultyTrack', 'prevFacultyBtn', 'nextFacultyBtn', 360);
+            setupTrack('updatesTrack', 'prevUpdatesBtn', 'nextUpdatesBtn', 360);
 
-            if (track && prevBtn && nextBtn) {
-                prevBtn.addEventListener('click', () => {
-                    // 330px approx shift width
-                    track.scrollBy({ left: -330, behavior: 'smooth' });
-                });
-                nextBtn.addEventListener('click', () => {
-                    track.scrollBy({ left: 330, behavior: 'smooth' });
-                });
-            }
-            // Faculty Carousel Logic
-            const facultyTrack = document.getElementById('facultyTrack');
-            const prevFacultyBtn = document.getElementById('prevFacultyBtn');
-            const nextFacultyBtn = document.getElementById('nextFacultyBtn');
-
-            if (facultyTrack && prevFacultyBtn && nextFacultyBtn) {
-                prevFacultyBtn.addEventListener('click', () => {
-                    facultyTrack.scrollBy({ left: -360, behavior: 'smooth' });
-                });
-                nextFacultyBtn.addEventListener('click', () => {
-                    facultyTrack.scrollBy({ left: 360, behavior: 'smooth' });
+            // 7. YouTube Facade
+            const facade = document.getElementById('youtube-facade');
+            if (facade) {
+                facade.addEventListener('click', () => {
+                    facade.innerHTML = `<iframe src="https://www.youtube.com/embed/aYmI0tIK9J4?autoplay=1" 
+                        title="Infinity Classes Pune" class="video-embed-iframe" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen style="border:none;"></iframe>`;
                 });
             }
 
-            // Updates Carousel Logic
-            const updatesTrack = document.getElementById('updatesTrack');
-            const prevUpdatesBtn = document.getElementById('prevUpdatesBtn');
-            const nextUpdatesBtn = document.getElementById('nextUpdatesBtn');
-
-            if (updatesTrack && prevUpdatesBtn && nextUpdatesBtn) {
-                prevUpdatesBtn.addEventListener('click', () => {
-                    updatesTrack.scrollBy({ left: -360, behavior: 'smooth' });
-                });
-                nextUpdatesBtn.addEventListener('click', () => {
-                    updatesTrack.scrollBy({ left: 360, behavior: 'smooth' });
-                });
+            // 8. Intro Logic
+            const introOverlay = document.getElementById('introOverlay');
+            if (introOverlay) {
+                if (sessionStorage.getItem('hasSeenIntro')) {
+                    introOverlay.style.display = 'none';
+                } else {
+                    setTimeout(() => {
+                        introOverlay.classList.add('hidden');
+                        sessionStorage.setItem('hasSeenIntro', 'true');
+                        setTimeout(() => { introOverlay.style.display = 'none'; }, 1000);
+                    }, 2500);
+                }
             }
 
-            // 8. Enroll Modal Intercept
-            const enrollLinks = document.querySelectorAll('a[href="#enroll"]');
-            const enrollModal = document.getElementById('enroll');
-            enrollLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    enrollModal.classList.add('active');
-                    document.body.style.overflow = 'hidden';
-                    if (window.lenis) window.lenis.stop(); // Pause smooth scroll
+            // 9. Enroll Modal & Links
+            window.closeEnrollModal = () => {
+                document.getElementById('enroll').classList.remove('active');
+                document.body.style.overflow = '';
+                if (window.lenis) window.lenis.start();
+            };
+
+            const classSelect = document.getElementById('enquiryClassSelect');
+            const boardSelect = document.getElementById('enquiryBoardSelect');
+            if (classSelect && boardSelect) {
+                classSelect.addEventListener('change', function() {
+                    const val = this.value;
+                    let html = '<option value="" disabled selected>Select Board</option><option value="cbse">CBSE</option>';
+                    if (['11','12','jee','mhtcet'].includes(val)) html += '<option value="state">State Board</option>';
+                    if (val === 'mhtcet') html += '<option value="crash_course">Crash Course</option>';
+                    if (['12','mhtcet','jee'].includes(val)) html += '<option value="cbse_jee">CBSE+JEE</option><option value="state_jee">STATE+JEE</option>';
+                    boardSelect.innerHTML = html;
                 });
-            });
+            }
         });
 
-        function closeEnrollModal() {
-            document.getElementById('enroll').classList.remove('active');
-            document.body.style.overflow = '';
-            if (window.lenis) window.lenis.start(); // Resume smooth scroll
-        }
-
-        // 7. Lightbox Modal Logic
+        // Modals (outside DOMContentLoaded to be global)
         const videoModal = document.getElementById('videoModal');
         const modalIframe = document.getElementById('modalIframe');
-
         function openModal(e) {
             e.preventDefault();
             videoModal.classList.add('active');
@@ -955,71 +941,12 @@
             document.body.style.overflow = 'hidden';
             if (window.lenis) window.lenis.stop();
         }
-
         function closeModal() {
             videoModal.classList.remove('active');
             modalIframe.src = "";
             document.body.style.overflow = '';
             if (window.lenis) window.lenis.start();
         }
-
-        // 8. Custom Intro Logic
-        document.addEventListener('DOMContentLoaded', () => {
-            const introOverlay = document.getElementById('introOverlay');
-
-            if (introOverlay) {
-                // Check session storage
-                const hasSeenIntro = sessionStorage.getItem('hasSeenIntro');
-
-                if (hasSeenIntro) {
-                    introOverlay.style.display = 'none';
-                } else {
-                    const hideIntro = () => {
-                        introOverlay.classList.add('hidden');
-                        sessionStorage.setItem('hasSeenIntro', 'true');
-                        // Completely hide after fade out
-                        setTimeout(() => { introOverlay.style.display = 'none'; }, 1200);
-                    };
-
-                    // Auto hide automatically
-                    setTimeout(hideIntro, 2500);
-                }
-            }
-        });
-
-        // 9. Dynamic Form Constraints
-        document.addEventListener('DOMContentLoaded', () => {
-            const classSelect = document.getElementById('enquiryClassSelect');
-            const boardSelect = document.getElementById('enquiryBoardSelect');
-
-            if (classSelect && boardSelect) {
-                classSelect.addEventListener('change', function () {
-                    const selectedClass = this.value;
-
-                    // Reset options
-                    boardSelect.innerHTML = '<option value="" disabled selected>Select Board</option>';
-
-                    // 1. CBSE board is available for all classes
-                    boardSelect.innerHTML += '<option value="cbse">CBSE</option>';
-
-                    // 2. State Board is available for 11th, 12th classes (and implicitly JEE/MHTCET as they are 11th/12th)
-                    if (selectedClass === '11' || selectedClass === '12' || selectedClass === 'jee' || selectedClass === 'mhtcet') {
-                        boardSelect.innerHTML += '<option value="state">State Board</option>';
-                    }
-
-                    // 3. For MHTCET add crash course in select board area
-                    if (selectedClass === 'mhtcet') {
-                        boardSelect.innerHTML += '<option value="crash_course">Crash Course</option>';
-                    }
-
-                    // 4. Custom combinations for 12th, MHTCET, and JEE Mains
-                    if (selectedClass === '12' || selectedClass === 'mhtcet' || selectedClass === 'jee') {
-                        boardSelect.innerHTML += '<option value="cbse_jee">CBSE+JEE</option>';
-                        boardSelect.innerHTML += '<option value="state_jee">STATE+JEE</option>';
-                    }
-                });
-            }
-        });
     </script>
 
     <!-- ═══ LOCAL CMS DATA STORE (Converted to Firebase Firestore) ═══ -->
@@ -1411,28 +1338,42 @@
             }
         };
 
-        // ── INITIALIZE ALL ──
+        // ── INITIALIZE ALL (Parallelized for Performance) ──
         async function loadSiteData() {
-            // Wait for CMS to initialize (modules load async)
             if (!window.CMS) {
                 setTimeout(loadSiteData, 50);
                 return;
             }
             try {
-                await loadHero();
-                await loadCourses();
-                await loadFaculty();
-                await loadResults();
-                await loadTestimonials();
-                await loadGallery();
-                await loadUpdates();
-                await loadEnrollConfig();
+                // Kick off all requests in parallel
+                await Promise.all([
+                    loadHero(),
+                    loadCourses(),
+                    loadFaculty(),
+                    loadResults(),
+                    loadTestimonials(),
+                    loadGallery(),
+                    loadUpdates(),
+                    loadEnrollConfig()
+                ]);
             } catch (err) {
                 console.warn('Some CMS data could not load. Fallback content shown.', err);
             }
         }
 
         loadSiteData();
+
+        // Throttled Scroll for Gallery Counter
+        document.getElementById('galleryScroller').addEventListener('scroll', () => {
+            if (this._throttle) return;
+            this._throttle = true;
+            setTimeout(() => {
+                const scroller = document.getElementById('galleryScroller');
+                const index = Math.round(scroller.scrollLeft / scroller.children[0].clientWidth) + 1;
+                document.getElementById('galleryCounter').textContent = `${index} / ${scroller.children.length}`;
+                this._throttle = false;
+            }, 100);
+        }, { passive: true });
     </script>
     
     <div class="floating-social">

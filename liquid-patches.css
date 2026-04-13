@@ -30,6 +30,7 @@
     pointer-events: none;
     z-index: 0;
     contain: strict;
+    will-change: transform;
 }
 
 /* Ensure container content lifts above the floating system */
@@ -91,6 +92,7 @@ section > .container {
     max-width: 450px;
     max-height: 450px;
     contain: layout style;
+    will-change: transform, opacity;
 }
 
 @keyframes liquidBreathe {
@@ -237,7 +239,7 @@ section > .container {
     }
 
     .edu-pattern, .micro-particles, .light-streaks {
-        opacity: 0.05 !important;
+        display: none !important;
     }
 
     .review-card:hover {

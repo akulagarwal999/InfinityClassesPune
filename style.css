@@ -23,7 +23,7 @@
     --shadow-cyan: 0 12px 35px rgba(0, 194, 212, 0.35);
     /* Brighter hover glow */
     --border-radius: 20px;
-    --transition: all 0.3s ease;
+    --transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Reset & Base */
@@ -150,10 +150,11 @@ section {
     width: 100%;
     z-index: 1000;
     padding: 1rem 0;
-    transition: var(--transition);
+    transition: transform 0.3s ease, background-color 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    will-change: transform, background-color;
 }
 
 .navbar.nav-scrolled {
@@ -181,6 +182,7 @@ section {
     display: flex;
     align-items: center;
     gap: 2rem;
+    will-change: transform;
 }
 
 .nav-links li a {
@@ -373,6 +375,7 @@ section {
     transition: all 0.3s ease;
     animation: pulseGlow 3s infinite alternate ease-in-out;
     text-align: center;
+    will-change: filter, transform;
 }
 
 .btn-primary-hero:hover {
@@ -382,8 +385,8 @@ section {
 }
 
 @keyframes pulseGlow {
-    0% { box-shadow: 0 8px 30px rgba(0, 194, 212, 0.35); }
-    100% { box-shadow: 0 8px 40px rgba(0, 194, 212, 0.55); }
+    0% { filter: drop-shadow(0 8px 15px rgba(0, 194, 212, 0.35)); }
+    100% { filter: drop-shadow(0 8px 25px rgba(0, 194, 212, 0.55)); }
 }
 
 .btn-secondary-hero {
@@ -481,6 +484,8 @@ section {
     box-shadow: var(--shadow-soft);
     transition: var(--transition);
     text-align: left;
+    contain: content;
+    will-change: transform, box-shadow;
 }
 
 .feature-card:hover {
@@ -556,6 +561,8 @@ section {
     flex-direction: column;
     align-items: flex-start;
     text-align: left;
+    contain: content;
+    will-change: transform, box-shadow;
 }
 
 .course-card:hover {
@@ -648,6 +655,8 @@ section {
     text-align: center;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     position: relative;
+    contain: content;
+    will-change: transform;
 }
 
 .topper-avatar {
@@ -730,6 +739,8 @@ section {
     box-shadow: var(--shadow-soft);
     border: 1px solid rgba(0, 0, 0, 0.03);
     transition: var(--transition);
+    contain: content;
+    will-change: transform;
 }
 
 .faculty-card:nth-child(even) { flex-direction: row-reverse; }
