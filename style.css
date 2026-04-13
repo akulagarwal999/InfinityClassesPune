@@ -1418,6 +1418,23 @@ section {
     font-size: 0.85rem;
 }
 
+.footer-team-members {
+    margin-left: 5px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    white-space: nowrap;
+}
+
+.footer-team-members a {
+    color: rgba(255, 255, 255, 0.6);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.footer-team-members a:hover {
+    color: var(--accent-cyan);
+}
+
 /* Responsive Media Queries */
 @media (max-width: 1024px) {
     .courses-grid, .testimonials-grid { grid-template-columns: repeat(2, 1fr); }
