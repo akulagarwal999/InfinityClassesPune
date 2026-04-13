@@ -230,9 +230,10 @@ section > .container {
     #cursor-blob { display: none !important; }
 
     .premium-patch {
-        filter: blur(60px);
-        opacity: 0.18 !important;
-        animation-duration: 30s !important;
+        filter: blur(25px);
+        opacity: 0.10 !important;
+        animation: none !important;
+        transform: none !important;
     }
 
     .edu-pattern, .micro-particles, .light-streaks {
