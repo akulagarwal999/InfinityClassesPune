@@ -9,6 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style>
         /* ═══════════════════════════════════════════════════
            ADMIN PANEL — LIGHT BLUE PROFESSIONAL THEME
@@ -599,6 +601,59 @@
             .panel-header { flex-direction: column; align-items: flex-start; }
             .stats-row { grid-template-columns: 1fr; }
         }
+
+        /* ═══ IMAGE CROPPING MODAL ═══ */
+        .crop-modal {
+            position: fixed; inset: 0;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center;
+            z-index: 20000; padding: 20px;
+        }
+        .crop-modal.active { display: flex; }
+        .crop-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            width: 100%; max-width: 600px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            display: flex; flex-direction: column;
+        }
+        .crop-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .crop-header h3 { font-family: 'Poppins', sans-serif; font-size: 1.1rem; margin: 0; }
+        .crop-body {
+            padding: 0;
+            background: #f1f5f9;
+            width: 100%;
+            max-height: 60vh;
+            overflow: hidden;
+            position: relative;
+        }
+        .crop-body img {
+            display: block;
+            max-width: 100%;
+        }
+        .crop-footer {
+            padding: 20px 24px;
+            border-top: 1px solid var(--border);
+            display: flex; gap: 12px; justify-content: flex-end;
+        }
+        .crop-btn-save {
+            background: var(--accent); color: white; border: none;
+            padding: 12px 24px; border-radius: var(--radius-sm);
+            font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .crop-btn-save:hover { background: var(--accent-hover); }
+        .crop-btn-cancel {
+            background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border);
+            padding: 12px 24px; border-radius: var(--radius-sm);
+            font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .crop-btn-cancel:hover { background: var(--sidebar-active); }
     </style>
 </head>
 <body>
@@ -772,6 +827,65 @@
 
         // Provide window.CMS as a promise-aware reference
         const db = window.CMS; 
+
+        /* ──────────── IMAGE CROPPING ──────────── */
+        let currentCropper = null;
+
+        function cropImage(file, aspectRatio, outputWidth, outputHeight) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('crop-modal');
+                const image = document.getElementById('crop-image-element');
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    image.src = e.target.result;
+                    modal.classList.add('active');
+
+                    if (currentCropper) currentCropper.destroy();
+
+                    currentCropper = new Cropper(image, {
+                        aspectRatio: aspectRatio,
+                        viewMode: 2,
+                        dragMode: 'move',
+                        autoCropArea: 1,
+                        background: false,
+                        responsive: true,
+                        restore: false,
+                        checkOrientation: false,
+                        modal: true,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: false,
+                        cropBoxResizable: false,
+                        toggleDragModeOnDblclick: false,
+                    });
+                };
+
+                const cleanup = () => {
+                    modal.classList.remove('active');
+                    if (currentCropper) { currentCropper.destroy(); currentCropper = null; }
+                };
+
+                document.getElementById('crop-save-btn').onclick = () => {
+                    if (!currentCropper) return;
+                    const canvas = currentCropper.getCroppedCanvas({
+                        width: outputWidth,
+                        height: outputHeight,
+                        imageSmoothingEnabled: true,
+                        imageSmoothingQuality: 'high',
+                    });
+                    canvas.toBlob((blob) => { cleanup(); resolve(blob); }, 'image/jpeg', 0.85);
+                };
+
+                document.getElementById('crop-cancel-btn').onclick = () => {
+                    cleanup();
+                    resolve(null);
+                };
+
+                reader.readAsDataURL(file);
+            });
+        }
 
         function resizeImageBeforeUpload(file, targetWidth, targetHeight) {
           return new Promise((resolve) => {
@@ -1164,7 +1278,13 @@
         document.getElementById('add-faculty-btn').addEventListener('click', () => showFacultyForm());
 
         async function uploadFacultyPhoto(file, docId) {
+<<<<<<< HEAD
             const url = await window.CMS.uploadImage(file);
+=======
+            const croppedBlob = await cropImage(file, 1, 600, 600);
+            if (!croppedBlob) return;
+            const url = await window.CMS.uploadImage(croppedBlob);
+>>>>>>> origin/master
             let cacheBustedUrl = url;
             if (!cacheBustedUrl.startsWith('data:')) {
                 cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
@@ -1215,6 +1335,7 @@
                     else { const r = window.CMS.add('faculty', data); id = r.id; }
                     
                     if (file && file instanceof File) {
+<<<<<<< HEAD
                         // Use interactive cropper even on initial save if file exists
                         window.openCropper(file, 1, async (croppedFile) => {
                             const url = await window.CMS.uploadImage(croppedFile);
@@ -1223,6 +1344,13 @@
                             area.innerHTML=''; loadFacultyPanel();
                         });
                         return; // Exit as openCropper handles the final save
+=======
+                        const croppedBlob = await cropImage(file, 1, 600, 600);
+                        if (croppedBlob) {
+                            const url = await window.CMS.uploadImage(croppedBlob);
+                            window.CMS.update('faculty', id, { photoUrl: url });
+                        }
+>>>>>>> origin/master
                     }
                     showToast('Faculty saved.'); area.innerHTML=''; loadFacultyPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
@@ -1270,7 +1398,13 @@
         document.getElementById('add-result-btn').addEventListener('click', () => showResultForm());
 
         async function uploadResultPhoto(file, docId) {
+<<<<<<< HEAD
             const url = await window.CMS.uploadImage(file);
+=======
+            const croppedBlob = await cropImage(file, 1, 600, 600);
+            if (!croppedBlob) return;
+            const url = await window.CMS.uploadImage(croppedBlob);
+>>>>>>> origin/master
             let cacheBustedUrl = url;
             if (!cacheBustedUrl.startsWith('data:')) {
                 cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
@@ -1319,6 +1453,7 @@
                     else { const r = window.CMS.add('results', data); id=r.id; }
                     
                     if (file && file instanceof File) {
+<<<<<<< HEAD
                         window.openCropper(file, 1, async (croppedFile) => {
                             const url = await window.CMS.uploadImage(croppedFile);
                             await window.CMS.update('results', id, { photoUrl: url });
@@ -1326,6 +1461,13 @@
                             area.innerHTML=''; loadResultsPanel();
                         });
                         return;
+=======
+                        const croppedBlob = await cropImage(file, 1, 600, 600);
+                        if (croppedBlob) {
+                            const url = await window.CMS.uploadImage(croppedBlob);
+                            window.CMS.update('results', id, { photoUrl: url });
+                        }
+>>>>>>> origin/master
                     }
                     showToast('Result saved.'); area.innerHTML=''; loadResultsPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
@@ -1404,8 +1546,9 @@
             if (!file) return;
             showToast('Uploading...', 'success');
             try {
-                const resizedFile = await resizeImageBeforeUpload(file, 1024, 768);
-                const url = await window.CMS.uploadImage(resizedFile);
+                const croppedBlob = await cropImage(file, 4/3, 1024, 768);
+                if (!croppedBlob) return;
+                const url = await window.CMS.uploadImage(croppedBlob);
                 
                 const snap = await window.CMS.get('gallery', id);
                 if (snap.exists()) {
@@ -1576,6 +1719,7 @@
         };
 
     </script>
+<<<<<<< HEAD
     <!-- ══════════════════════════════════
           IMAGE CROPPING MODAL (SYSTEM RESTORE)
           ══════════════════════════════════ -->
@@ -1657,5 +1801,23 @@
             cropper = null;
         };
     </script>
+=======
+
+    <!-- ═══ IMAGE CROPPING MODAL ═══ -->
+    <div class="crop-modal" id="crop-modal">
+        <div class="crop-card">
+            <div class="crop-header">
+                <h3><i class="fas fa-crop-alt" style="margin-right:8px;color:var(--accent)"></i> Crop Image</h3>
+            </div>
+            <div class="crop-body">
+                <img id="crop-image-element" src="" alt="Crop preview">
+            </div>
+            <div class="crop-footer">
+                <button class="crop-btn-cancel" id="crop-cancel-btn"><i class="fas fa-times"></i> Cancel</button>
+                <button class="crop-btn-save" id="crop-save-btn"><i class="fas fa-check"></i> Crop & Save</button>
+            </div>
+        </div>
+    </div>
+>>>>>>> origin/master
 </body>
 </html>
