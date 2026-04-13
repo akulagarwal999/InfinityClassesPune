@@ -764,6 +764,17 @@ section {
     flex-shrink: 0;
 }
 
+.faculty-avatar-img {
+    width: clamp(120px, 15vw, 160px);
+    height: clamp(120px, 15vw, 160px);
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: center;
+    flex-shrink: 0;
+    border: 4px solid white;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
 .faculty-info { flex: 1; }
 .faculty-card h3 { color: var(--primary-dark); margin-bottom: 0.3rem; }
 
