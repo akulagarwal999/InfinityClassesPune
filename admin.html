@@ -761,7 +761,9 @@
     <div id="admin-toast" class="admin-toast"></div>
 
     <!-- ═══ LOCAL CMS DATA STORE (Converted to Firebase Firestore) ═══ -->
-    <script type="module" src="cms-data.js"></script>
+    <!-- Cropper.js CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     
     <!-- ═══ COMPLETE APP LOGIC (CONNECTED TO CMS) ═══ -->
     <script type="module">
@@ -1162,23 +1164,23 @@
         document.getElementById('add-faculty-btn').addEventListener('click', () => showFacultyForm());
 
         async function uploadFacultyPhoto(file, docId) {
-            const resizedBlob = await resizeImageBeforeUpload(file, 400, 400);
-            const url = await window.CMS.uploadImage(resizedBlob);
+            const url = await window.CMS.uploadImage(file);
             let cacheBustedUrl = url;
             if (!cacheBustedUrl.startsWith('data:')) {
                 cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             }
             await window.CMS.update('faculty', docId, { photoUrl: cacheBustedUrl });
             showToast('Photo uploaded successfully.');
-            editFaculty(docId);
+            editFaculty(docId); // Refresh form to show new photo and Remove button
         }
 
         async function removeFacultyPhoto(docId) {
-            if (!confirm('Remove this photo? The faculty member will not be deleted.')) return;
+            if (!confirm('Remove this photo? The record will not be deleted.')) return;
             try {
+                // Ensure UI is updated and database reference is cleared
                 await window.CMS.update('faculty', docId, { photoUrl: '' });
-                showToast('Photo removed.');
-                editFaculty(docId);
+                showToast('Photo removed instantly.');
+                editFaculty(docId); // Re-render the form to clear preview and hide remove button
             } catch(err) {
                 showToast('Error removing photo.', 'error');
             }
@@ -1192,7 +1194,10 @@
             newInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                await uploadFacultyPhoto(file, docId);
+                // Mandatory professional crop (1:1 aspect ratio)
+                window.openCropper(file, 1, async (croppedFile) => {
+                    await uploadFacultyPhoto(croppedFile, docId);
+                });
             });
         }
 
@@ -1210,9 +1215,14 @@
                     else { const r = window.CMS.add('faculty', data); id = r.id; }
                     
                     if (file && file instanceof File) {
-                        const resizedFile = await resizeImageBeforeUpload(file, 400, 400);
-                        const url = await window.CMS.uploadImage(resizedFile);
-                        window.CMS.update('faculty', id, { photoUrl: url });
+                        // Use interactive cropper even on initial save if file exists
+                        window.openCropper(file, 1, async (croppedFile) => {
+                            const url = await window.CMS.uploadImage(croppedFile);
+                            await window.CMS.update('faculty', id, { photoUrl: url });
+                            showToast('Faculty saved with cropped photo.');
+                            area.innerHTML=''; loadFacultyPanel();
+                        });
+                        return; // Exit as openCropper handles the final save
                     }
                     showToast('Faculty saved.'); area.innerHTML=''; loadFacultyPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
@@ -1260,14 +1270,13 @@
         document.getElementById('add-result-btn').addEventListener('click', () => showResultForm());
 
         async function uploadResultPhoto(file, docId) {
-            const resizedBlob = await resizeImageBeforeUpload(file, 400, 400);
-            const url = await window.CMS.uploadImage(resizedBlob);
+            const url = await window.CMS.uploadImage(file);
             let cacheBustedUrl = url;
             if (!cacheBustedUrl.startsWith('data:')) {
                 cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
             }
             await window.CMS.update('results', docId, { photoUrl: cacheBustedUrl });
-            showToast('Photo uploaded successfully.');
+            showToast('Student photo uploaded.');
             editResult(docId);
         }
 
@@ -1275,8 +1284,8 @@
             if (!confirm('Remove this photo? The record will not be deleted.')) return;
             try {
                 await window.CMS.update('results', docId, { photoUrl: '' });
-                showToast('Photo removed.');
-                editResult(docId);
+                showToast('Photo removed instantly.');
+                editResult(docId); // Re-render the form
             } catch(err) {
                 showToast('Error removing photo.', 'error');
             }
@@ -1290,7 +1299,10 @@
             newInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                await uploadResultPhoto(file, docId);
+                // Mandatory professional crop (1:1 aspect ratio)
+                window.openCropper(file, 1, async (croppedFile) => {
+                    await uploadResultPhoto(croppedFile, docId);
+                });
             });
         }
 
@@ -1307,9 +1319,13 @@
                     else { const r = window.CMS.add('results', data); id=r.id; }
                     
                     if (file && file instanceof File) {
-                        const resizedFile = await resizeImageBeforeUpload(file, 400, 400);
-                        const url = await window.CMS.uploadImage(resizedFile);
-                        window.CMS.update('results', id, { photoUrl: url });
+                        window.openCropper(file, 1, async (croppedFile) => {
+                            const url = await window.CMS.uploadImage(croppedFile);
+                            await window.CMS.update('results', id, { photoUrl: url });
+                            showToast('Result saved with cropped photo.');
+                            area.innerHTML=''; loadResultsPanel();
+                        });
+                        return;
                     }
                     showToast('Result saved.'); area.innerHTML=''; loadResultsPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
@@ -1559,6 +1575,87 @@
             window.draggedImageInfo = null;
         };
 
+    </script>
+    <!-- ══════════════════════════════════
+          IMAGE CROPPING MODAL (SYSTEM RESTORE)
+          ══════════════════════════════════ -->
+    <div id="cropModal" class="admin-modal" style="display:none; align-items:center; justify-content:center; z-index:100000; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px);">
+        <div class="crud-form" style="max-width:90vw; width:600px; padding:25px; border-radius:20px; background:#fff; position:relative;">
+            <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:15px; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-crop-alt" style="color:var(--accent);"></i> Professional Image Crop
+            </h3>
+            
+            <div style="width:100%; height:400px; background:#f0f0f0; border-radius:12px; overflow:hidden; margin:20px 0; display:flex; align-items:center; justify-content:center;">
+                <img id="cropper-image" src="" style="max-width:100%; max-height:100%; display:block;">
+            </div>
+
+            <div style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
+                <button type="button" class="admin-mark-btn" onclick="cropper.zoom(0.1)" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+                <button type="button" class="admin-mark-btn" onclick="cropper.zoom(-0.1)" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+                <button type="button" class="admin-mark-btn" onclick="cropper.rotate(90)" title="Rotate"><i class="fas fa-redo"></i></button>
+            </div>
+
+            <div style="display:flex; gap:12px; justify-content:flex-end; border-top:1px solid #eee; padding-top:20px;">
+                <button type="button" class="btn-outline" onclick="closeCropper()"><i class="fas fa-times"></i> Cancel</button>
+                <button type="button" class="admin-save-btn" id="confirm-crop-btn"><i class="fas fa-check"></i> Crop & Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cropper = null;
+
+        /**
+         * System Restore: Interactive Cropping Logic
+         */
+        window.openCropper = function(file, aspect, callback) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const modal = document.getElementById('cropModal');
+                const img = document.getElementById('cropper-image');
+                img.src = e.target.result;
+                modal.style.display = 'flex';
+
+                if (cropper) cropper.destroy();
+
+                cropper = new Cropper(img, {
+                    aspectRatio: aspect,
+                    viewMode: 2,
+                    dragMode: 'move',
+                    autoCropArea: 1,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                });
+
+                document.getElementById('confirm-crop-btn').onclick = () => {
+                    const canvas = cropper.getCroppedCanvas({
+                        width: 600,
+                        height: 600,
+                        imageSmoothingEnabled: true,
+                        imageSmoothingQuality: 'high',
+                    });
+
+                    canvas.toBlob((blob) => {
+                        const croppedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                        closeCropper();
+                        callback(croppedFile);
+                    }, 'image/jpeg', 0.9);
+                };
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.closeCropper = function() {
+            const modal = document.getElementById('cropModal');
+            modal.style.display = 'none';
+            if (cropper) cropper.destroy();
+            cropper = null;
+        };
     </script>
 </body>
 </html>

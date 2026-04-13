@@ -762,6 +762,18 @@ section {
     font-family: 'Poppins';
     color: var(--text-muted);
     flex-shrink: 0;
+    overflow: hidden; /* Added to contain img */
+    border: 3px solid rgba(0, 194, 212, 0.1);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+}
+
+.faculty-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 50%;
+    display: block;
 }
 
 .faculty-info { flex: 1; }
