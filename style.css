@@ -1477,6 +1477,7 @@ section {
     .form-row { grid-template-columns: 1fr; }
     .footer-grid { grid-template-columns: 1fr; gap: 3rem; text-align: left; }
     .video-container { display: flex; flex-direction: column-reverse; }
+    .gallery-nav-btn { display: none !important; }
 }
 
 @media (max-width: 480px) {
