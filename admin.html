@@ -776,6 +776,9 @@
                 <a class="nav-item" data-section="courses">
                     <i class="fas fa-book"></i> <span>Courses</span>
                 </a>
+                <a class="nav-item" data-section="online">
+                    <i class="fas fa-laptop-code"></i> <span>Online Courses</span>
+                </a>
                 <a class="nav-item" data-section="faculty">
                     <i class="fas fa-chalkboard-teacher"></i> <span>Faculty</span>
                 </a>
@@ -788,6 +791,9 @@
                 </a>
                 <a class="nav-item" data-section="updates">
                     <i class="fas fa-bell"></i> <span>Updates</span>
+                </a>
+                <a class="nav-item" data-section="settings">
+                    <i class="fas fa-cog"></i> <span>Site Settings</span>
                 </a>
 
             </nav>
@@ -887,6 +893,59 @@
                 <div id="update-form-area"></div>
                 <div id="updates-list">
                     <div class="admin-loading"><div class="spinner"></div> Loading...</div>
+                </div>
+            </div>
+
+            <!-- ═══ SITE SETTINGS PANEL ═══ -->
+            <div class="admin-panel" id="panel-settings">
+                <div class="panel-header">
+                    <h2><i class="fas fa-cog"></i> Site Settings</h2>
+                </div>
+                <div class="panel-card">
+                    <h3 style="margin-bottom: 16px; font-size: 1rem;">Homepage Content</h3>
+                    <div class="form-row-admin" style="grid-template-columns: 1fr;">
+                        <div class="form-group">
+                            <label class="admin-label">Homepage YouTube Video URL</label>
+                            <input type="text" id="settings-youtube-url" class="admin-input" placeholder="e.g. https://www.youtube.com/watch?v=OFq3VckdcyE">
+                            <small style="color:var(--text-muted); font-size: 0.8rem; display:block; margin-top:-10px; margin-bottom: 16px;">Paste the full YouTube URL or youtu.be link. This will replace the 'See Us In Action' section on the homepage. Leave blank to hide the video.</small>
+                        </div>
+                    </div>
+                    <button class="admin-save-btn" id="save-settings-btn"><i class="fas fa-save"></i> Save Settings</button>
+                </div>
+            </div>
+
+            <!-- ═══ ONLINE COURSES PANEL ═══ -->
+            <div class="admin-panel" id="panel-online">
+                <div class="panel-header">
+                    <h2><i class="fas fa-laptop-code"></i> Online Courses Highlight</h2>
+                </div>
+                <div class="panel-card">
+                    <h3 style="margin-bottom: 16px; font-size: 1rem;">Highlight Settings</h3>
+                    <div class="form-row-admin" style="grid-template-columns: 1fr;">
+                        <div class="form-group">
+                            <label class="admin-label">Image (16:9 Aspect Ratio)</label>
+                            <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                                <div id="online-image-preview" style="width: 200px; height: 112px; border-radius: 8px; background: var(--bg-tint); border: 2px dashed var(--primary-mid); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <i class="fas fa-image" style="color: var(--text-muted); font-size: 2rem;"></i>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                                    <input type="file" id="online-image-input" accept="image/*" style="display:none;">
+                                    <button class="admin-edit-btn" id="online-upload-btn" onclick="document.getElementById('online-image-input').click()"><i class="fas fa-upload"></i> Upload</button>
+                                    <button class="admin-delete-btn" id="online-remove-img-btn" style="display:none;"><i class="fas fa-trash"></i> Remove Photo</button>
+                                </div>
+                                <input type="hidden" id="online-photo-url-hidden">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="admin-label">Information Text (Body)</label>
+                            <textarea id="online-body" class="admin-input" rows="4" placeholder="Enter details about your online courses here..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="admin-label">Redirect URL / Link</label>
+                            <input type="text" id="online-url" class="admin-input" placeholder="e.g. https://vokmatch.in/" value="https://vokmatch.in/">
+                        </div>
+                    </div>
+                    <button class="admin-save-btn" id="save-online-btn"><i class="fas fa-save"></i> Save Settings</button>
                 </div>
             </div>
 
@@ -1068,10 +1127,127 @@
                 'faculty': loadFacultyPanel,
                 'results': loadResultsPanel,
                 'gallery': loadGalleryPanel,
-                'updates': loadUpdatesPanel
+                'updates': loadUpdatesPanel,
+                'settings': loadSettingsPanel,
+                'online': loadOnlineHighlightPanel
             };
             if (loaders[section]) await loaders[section]();
         }
+
+        /* ══════════════════════════════════
+         * ONLINE COURSES
+         * ══════════════════════════════════ */
+        async function loadOnlineHighlightPanel() {
+            const snap = await window.CMS.get('site_settings', 'online_course_config');
+            let d = { photoUrl: '', bodyText: '', targetUrl: 'https://vokmatch.in/' };
+            if (snap.exists()) d = { ...d, ...snap.data() };
+            
+            document.getElementById('online-photo-url-hidden').value = d.photoUrl || '';
+            document.getElementById('online-body').value = d.bodyText || '';
+            document.getElementById('online-url').value = d.targetUrl || 'https://vokmatch.in/';
+
+            const preview = document.getElementById('online-image-preview');
+            const removeBtn = document.getElementById('online-remove-img-btn');
+            if (d.photoUrl) {
+                preview.innerHTML = `<img src="${d.photoUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+                removeBtn.style.display = 'inline-flex';
+            } else {
+                preview.innerHTML = `<i class="fas fa-image" style="color: var(--text-muted); font-size: 2rem;"></i>`;
+                removeBtn.style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('online-image-input');
+            if (input) {
+                input.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    input.value = '';
+                    const croppedBlob = await cropImage(file, 16/9, 1200, 675);
+                    if (croppedBlob) {
+                        try {
+                            const url = await window.CMS.uploadImage(croppedBlob);
+                            document.getElementById('online-photo-url-hidden').value = url;
+                            document.getElementById('online-image-preview').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+                            document.getElementById('online-remove-img-btn').style.display = 'inline-flex';
+                        } catch(err) {
+                            showToast('Failed to upload image.', 'error');
+                        }
+                    }
+                });
+            }
+
+            const removeBtn = document.getElementById('online-remove-img-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    document.getElementById('online-photo-url-hidden').value = '';
+                    document.getElementById('online-image-preview').innerHTML = `<i class="fas fa-image" style="color: var(--text-muted); font-size: 2rem;"></i>`;
+                    removeBtn.style.display = 'none';
+                });
+            }
+
+            const saveBtn = document.getElementById('save-online-btn');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', async () => {
+                    const photoUrl = document.getElementById('online-photo-url-hidden').value;
+                    const bodyText = document.getElementById('online-body').value.trim();
+                    const targetUrl = document.getElementById('online-url').value.trim();
+                    
+                    const orig = saveBtn.innerHTML;
+                    saveBtn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;"></div> Saving...';
+                    saveBtn.disabled = true;
+                    try {
+                        await window.CMS.set('site_settings', 'online_course_config', { photoUrl, bodyText, targetUrl }, { merge: true });
+                        showToast('Online Courses Highlight saved.', 'success');
+                    } catch(e) { 
+                        console.error("Save error:", e);
+                        showToast('Failed to save settings.', 'error'); 
+                    }
+                    saveBtn.innerHTML = orig;
+                    saveBtn.disabled = false;
+                });
+            }
+        });
+
+        /* ══════════════════════════════════
+         * SETTINGS
+         * ══════════════════════════════════ */
+        async function loadSettingsPanel() {
+            const snap = await window.CMS.get('site_settings', 'general');
+            if (snap.exists()) {
+                const d = snap.data();
+                const ytInput = document.getElementById('settings-youtube-url');
+                if (ytInput) ytInput.value = d.youtubeVideoId ? `https://www.youtube.com/watch?v=${d.youtubeVideoId}` : '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const saveSettingsBtn = document.getElementById('save-settings-btn');
+            if (saveSettingsBtn) {
+                saveSettingsBtn.addEventListener('click', async () => {
+                    const ytInput = document.getElementById('settings-youtube-url');
+                    if (!ytInput) return;
+                    const val = ytInput.value.trim();
+                    let videoId = '';
+                    if (val) {
+                        const match = val.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+                        if (match) videoId = match[1];
+                        else { showToast('Invalid YouTube URL format.', 'error'); return; }
+                    }
+                    
+                    const orig = saveSettingsBtn.innerHTML;
+                    saveSettingsBtn.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:#fff;"></div> Saving...';
+                    saveSettingsBtn.disabled = true;
+                    try {
+                        await window.CMS.update('site_settings', 'general', { youtubeVideoId: videoId });
+                        showToast('Settings saved successfully.', 'success');
+                    } catch(e) { showToast('Failed to save settings.', 'error'); }
+                    saveSettingsBtn.innerHTML = orig;
+                    saveSettingsBtn.disabled = false;
+                });
+            }
+        });
 
         /* ══════════════════════════════════
          * ENQUIRIES
@@ -1165,13 +1341,19 @@
                     for(let i=1;i<=5;i++) html+=`<span class="${i<=s?'active':''}" data-val="${i}">★</span>`;
                     html+=`</div>`;
                 } else if (f.type==='file') {
-                    if (existing && docId && (coll === 'faculty' || coll === 'results')) {
-                        const pfx = coll === 'faculty' ? 'faculty' : 'result';
+                    if (existing && docId && (coll === 'faculty' || coll === 'results' || coll === 'courses' || coll === 'updates')) {
+                        let pfx = 'faculty';
+                        if (coll === 'results') pfx = 'result';
+                        if (coll === 'courses') pfx = 'course';
+                        if (coll === 'updates') pfx = 'update';
+                        
+                        let ucfPrefix = pfx.charAt(0).toUpperCase() + pfx.slice(1);
+
                         html += `
                             <div style="margin-bottom:16px; display:flex; gap:10px; align-items:center;">
                                 <input type="file" id="${pfx}-photo-input-${docId}" accept="image/*" style="display:none" data-key="${f.key}">
                                 <button type="button" class="admin-upload-btn" onclick="document.getElementById('${pfx}-photo-input-${docId}').click()"><i class="fas fa-camera"></i> Upload Photo</button>
-                                <button type="button" class="admin-danger-btn" id="${pfx}-remove-photo-${docId}" onclick="remove${pfx==='faculty'?'Faculty':'Result'}Photo('${docId}')" style="display: ${existing[f.key] ? 'inline-flex' : 'none'}"><i class="fas fa-times"></i> Remove Photo</button>
+                                <button type="button" class="admin-danger-btn" id="${pfx}-remove-photo-${docId}" onclick="remove${ucfPrefix}Photo('${docId}')" style="display: ${existing[f.key] ? 'inline-flex' : 'none'}"><i class="fas fa-times"></i> Remove Photo</button>
                             </div>
                         `;
                     } else {
@@ -1218,10 +1400,9 @@
             { key:'title', label:'Course Title' },
             { key:'board', label:'Board / Tags (comma separated)' },
             { key:'description', label:'Description', type:'textarea' },
-            { key:'icon', label:'Font Awesome Icon Class', default:'fa-book' },
             { key:'price', label:'Price (₹)', type:'number', default:0 },
             { key:'duration', label:'Duration (e.g. 12 months)' },
-            { key:'image_url', label:'Image URL (optional)' },
+            { key:'photoUrl', label:'Course Image (4:3)', type:'file' },
             { key:'order', label:'Display Order', type:'number', default:1 },
             { key:'active', label:'Active', type:'toggle', default:true }
         ];
@@ -1237,9 +1418,12 @@
                 const priceStr = data.price ? ` | ₹${data.price}` : '';
                 const durStr = data.duration ? ` | ${data.duration}` : '';
                 html += `<div class="crud-item" data-search="${(data.title||'').toLowerCase()} ${(data.board||'').toLowerCase()}">
-                    <div class="crud-item-info">
-                        <h4><i class="fas ${data.icon||'fa-book'}" style="color:var(--accent);margin-right:8px"></i>${data.title} ${statusBadge}</h4>
-                        <p>${data.board||''} | Order: ${data.order||0}${priceStr}${durStr}</p>
+                    <div class="crud-item-info" style="display: flex; gap: 12px; align-items: center;">
+                        ${data.photoUrl ? `<img src="${data.photoUrl}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">` : `<div style="width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: rgba(30, 111, 190, 0.08); flex-shrink: 0;"><i class="fas fa-book" style="color:var(--accent);"></i></div>`}
+                        <div>
+                            <h4 style="margin-bottom:2px;">${data.title} ${statusBadge}</h4>
+                            <p style="margin:0;">${data.board||''} | Order: ${data.order||0}${priceStr}${durStr}</p>
+                        </div>
                     </div>
                     <div class="crud-item-actions">
                         <button class="admin-edit-btn" onclick="editCourse('${d.id}')"><i class="fas fa-pen"></i> Edit</button>
@@ -1247,7 +1431,7 @@
                     </div>
                 </div>`;
             });
-            document.getElementById('courses-list').innerHTML = html || '<div class="empty-state"><i class="fas fa-book"></i><p>No courses yet. Click "Add Course" to start.</p></div>';
+            document.getElementById('courses-list').innerHTML = html || '<div class="empty-state"><i class="fas fa-image"></i><p>No courses yet. Click "Add Course" to start.</p></div>';
         }
 
         document.getElementById('course-search-admin').addEventListener('input', (e) => {
@@ -1259,17 +1443,68 @@
 
         document.getElementById('add-course-btn').addEventListener('click', () => showCourseForm());
 
+        async function uploadCoursePhoto(file, docId) {
+            const url = await window.CMS.uploadImage(file);
+            let cacheBustedUrl = url;
+            if (!cacheBustedUrl.startsWith('data:')) {
+                cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+            }
+            await window.CMS.update('courses', docId, { photoUrl: cacheBustedUrl });
+            showToast('Course image uploaded successfully.');
+            editCourse(docId);
+        }
+
+        async function removeCoursePhoto(docId) {
+            if (!confirm('Remove this photo? The record will not be deleted.')) return;
+            try {
+                await window.CMS.update('courses', docId, { photoUrl: '' });
+                showToast('Photo removed instantly.');
+                editCourse(docId);
+            } catch(err) {
+                showToast('Error removing photo.', 'error');
+            }
+        }
+
+        function attachCourseUploadListener(docId) {
+            const input = document.getElementById(`course-photo-input-${docId}`);
+            if (!input) return;
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            newInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                window.openCropper(file, 4/3, async (croppedFile) => {
+                    await uploadCoursePhoto(croppedFile, docId);
+                });
+            });
+        }
+
         function showCourseForm(existing=null, docId=null) {
             const area = document.getElementById('course-form-area');
-            area.innerHTML = buildCrudForm(courseFields, null, null, existing);
+            area.innerHTML = buildCrudForm(courseFields, null, null, existing, 'courses', docId);
+            if (existing && docId) attachCourseUploadListener(docId);
             area.querySelector('.crud-save-btn').addEventListener('click', async () => {
+                showToast('Saving...', 'success');
                 const data = getCrudFormData(area);
                 data.tags = (data.board||'').split(',').map(t=>t.trim()).filter(Boolean);
                 data.updated_at = Date.now();
                 if (!docId) data.created_at = Date.now();
+                
+                const file = data.photoUrl; delete data.photoUrl;
                 try {
+                    let id = docId;
                     if (docId) await window.CMS.update('courses', docId, data);
-                    else await window.CMS.add('courses', data);
+                    else { const r=await window.CMS.add('courses', data); id = r.id; }
+                    
+                    if (file && file instanceof File) {
+                        window.openCropper(file, 4/3, async (croppedFile) => {
+                            const url = await window.CMS.uploadImage(croppedFile);
+                            await window.CMS.update('courses', id, { photoUrl: url });
+                            showToast('Course saved with cropped photo.');
+                            area.innerHTML=''; loadCoursesPanel();
+                        });
+                        return;
+                    }
                     showToast('Course saved. Changes live.'); area.innerHTML=''; loadCoursesPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
             });
@@ -1660,6 +1895,8 @@
             { key:'title', label:'Title' },
             { key:'date', label:'Date (e.g. April 2025)' },
             { key:'body', label:'Body', type:'textarea' },
+            { key:'photoUrl', label:'Image (4:3)', type:'file' },
+            { key:'linkUrl', label:'Redirect URL (Optional, e.g. https://...)' },
             { key:'order', label:'Display Order', type:'number', default:1 },
             { key:'active', label:'Active', type:'toggle', default:true }
         ];
@@ -1673,9 +1910,12 @@
                     ? '<span class="status-active"><i class="fas fa-circle" style="font-size:6px"></i> Active</span>'
                     : '<span class="status-inactive"><i class="fas fa-circle" style="font-size:6px"></i> Inactive</span>';
                 html += `<div class="crud-item">
-                    <div class="crud-item-info">
-                        <h4>${data.title} ${statusBadge}</h4>
-                        <p>${data.date||''}</p>
+                    <div class="crud-item-info" style="display: flex; gap: 12px; align-items: center;">
+                        ${data.photoUrl ? `<img src="${data.photoUrl}" style="width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">` : `<div style="width: 40px; height: 40px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: rgba(0, 194, 212, 0.08); flex-shrink: 0;"><i class="far fa-calendar-alt" style="color:var(--accent-light);"></i></div>`}
+                        <div>
+                            <h4 style="margin-bottom:2px;">${data.title} ${statusBadge}</h4>
+                            <p style="margin:0;">${data.date||''}</p>
+                        </div>
                     </div>
                     <div class="crud-item-actions">
                         <button class="admin-edit-btn" onclick="editUpdate('${d.id}')"><i class="fas fa-pen"></i> Edit</button>
@@ -1688,14 +1928,64 @@
 
         document.getElementById('add-update-btn').addEventListener('click', () => showUpdateForm());
 
+        async function uploadUpdatePhoto(file, docId) {
+            const url = await window.CMS.uploadImage(file);
+            let cacheBustedUrl = url;
+            if (!cacheBustedUrl.startsWith('data:')) {
+                cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+            }
+            await window.CMS.update('updates', docId, { photoUrl: cacheBustedUrl });
+            showToast('Update image uploaded successfully.');
+            editUpdate(docId);
+        }
+
+        async function removeUpdatePhoto(docId) {
+            if (!confirm('Remove this photo? The record will not be deleted.')) return;
+            try {
+                await window.CMS.update('updates', docId, { photoUrl: '' });
+                showToast('Photo removed instantly.');
+                editUpdate(docId);
+            } catch(err) {
+                showToast('Error removing photo.', 'error');
+            }
+        }
+
+        function attachUpdateUploadListener(docId) {
+            const input = document.getElementById(`update-photo-input-${docId}`);
+            if (!input) return;
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            newInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                window.openCropper(file, 4/3, async (croppedFile) => {
+                    await uploadUpdatePhoto(croppedFile, docId);
+                });
+            });
+        }
+
         function showUpdateForm(existing=null, docId=null) {
             const area = document.getElementById('update-form-area');
-            area.innerHTML = buildCrudForm(updateFields, null, null, existing);
+            area.innerHTML = buildCrudForm(updateFields, null, null, existing, 'updates', docId);
+            if (existing && docId) attachUpdateUploadListener(docId);
             area.querySelector('.crud-save-btn').addEventListener('click', async () => {
+                showToast('Saving...', 'success');
                 const data = getCrudFormData(area);
+                const file = data.photoUrl; delete data.photoUrl;
                 try {
+                    let id = docId;
                     if (docId) await window.CMS.update('updates', docId, data);
-                    else await window.CMS.add('updates', data);
+                    else { const r = await window.CMS.add('updates', data); id = r.id; }
+                    
+                    if (file && file instanceof File) {
+                        window.openCropper(file, 4/3, async (croppedFile) => {
+                            const url = await window.CMS.uploadImage(croppedFile);
+                            await window.CMS.update('updates', id, { photoUrl: url });
+                            showToast('Update saved with auto-cropped image.');
+                            area.innerHTML=''; loadUpdatesPanel();
+                        });
+                        return;
+                    }
                     showToast('Update saved.'); area.innerHTML=''; loadUpdatesPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
             });
