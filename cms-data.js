@@ -155,6 +155,8 @@ import {
 
     window.CMS = {
 
+        timestamp: serverTimestamp,
+
         /** getAll — mimics getDocs() QuerySnapshot */
         getAll: async function(collName, opts) {
             opts = opts || {};
@@ -186,7 +188,11 @@ import {
                             id: docSnap.id,
                             data: function() {
                                 const d = docSnap.data();
-                                // Old code expects d.submittedAt.toDate()
+                                // Ensure Timestamp objects exist if they are raw numbers (for edge case safety)
+                                if (d.submittedAt && typeof d.submittedAt === 'number') {
+                                    const ts = d.submittedAt;
+                                    d.submittedAt = { toDate: () => new Date(ts) };
+                                }
                                 return d;
                             }
                         });

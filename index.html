@@ -1309,14 +1309,13 @@
 
             try {
                 await window.CMS.add('enquiries', {
-                    studentName: document.getElementById('field-studentName').value,
-                    parentName: document.getElementById('field-parentName').value,
+                    studentName: document.getElementById('field-studentName').value.trim(),
+                    parentName: document.getElementById('field-parentName').value.trim(),
                     class: document.getElementById('enquiryClassSelect').value,
                     board: document.getElementById('enquiryBoardSelect').value,
-                    phone: document.getElementById('field-phone').value,
+                    phone: document.getElementById('field-phone').value.trim(),
                     preferredTime: document.getElementById('field-preferredTime').value,
-                    submittedAt: Date.now(),
-                    created_at: Date.now(),
+                    submittedAt: window.CMS.timestamp(),
                     read: false,
                     status: 'new'
                 });

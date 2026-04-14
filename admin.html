@@ -674,6 +674,87 @@
         </div>
     </div>
 
+    <!-- ═══ STANDALONE AUTH HANDLER (independent of main module) ═══ -->
+    <script type="module">
+        // This is a separate module script that handles ONLY authentication.
+        // If this fails, check browser console for import errors.
+        try {
+            const { auth, GoogleAuthProvider } = await import('./firebase-config.js');
+            const { signInWithPopup, onAuthStateChanged, signOut } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js');
+
+            console.log('[Auth] Firebase auth module loaded successfully');
+
+            const ADMIN_EMAIL = 'infinityclassespune@gmail.com';
+
+            // Auth state listener
+            onAuthStateChanged(auth, async (user) => {
+                console.log('[Auth] State changed:', user ? user.email : 'signed out');
+                if (user) {
+                    if (user.email === ADMIN_EMAIL) {
+                        document.getElementById('admin-login-screen').style.display = 'none';
+                        document.getElementById('admin-dashboard').style.display = 'flex';
+                    } else {
+                        await signOut(auth);
+                        const errEl = document.getElementById('login-error');
+                        errEl.style.display = 'block';
+                        errEl.textContent = 'Unauthorized. Only ' + ADMIN_EMAIL + ' is allowed.';
+                    }
+                } else {
+                    document.getElementById('admin-login-screen').style.display = 'flex';
+                    document.getElementById('admin-dashboard').style.display = 'none';
+                }
+            });
+
+            // Google login button handler
+            const loginBtn = document.getElementById('google-login-btn');
+            if (loginBtn) {
+                loginBtn.addEventListener('click', async function() {
+                    const errEl = document.getElementById('login-error');
+                    const provider = new GoogleAuthProvider();
+
+                    loginBtn.disabled = true;
+                    loginBtn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Signing in...';
+                    errEl.style.display = 'none';
+
+                    console.log('[Auth] Google sign-in popup opening...');
+                    try {
+                        const result = await signInWithPopup(auth, provider);
+                        console.log('[Auth] SUCCESS:', result.user.email);
+                    } catch (error) {
+                        console.error('[Auth] FAILED:', error.code, error.message);
+                        errEl.style.display = 'block';
+                        errEl.textContent = 'Auth failed: ' + error.message;
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';
+                    }
+                });
+                console.log('[Auth] Click handler attached to login button');
+            } else {
+                console.error('[Auth] Login button #google-login-btn not found!');
+            }
+
+            // Logout handler
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    await signOut(auth);
+                    location.reload();
+                });
+            }
+
+            // Mark auth module as loaded
+            window._authReady = true;
+        } catch (err) {
+            console.error('[Auth] CRITICAL: Module failed to load:', err);
+            const errEl = document.getElementById('login-error');
+            if (errEl) {
+                errEl.style.display = 'block';
+                errEl.textContent = 'System error: ' + err.message;
+            }
+        }
+    </script>
+
+
     <!-- ═══ DASHBOARD ═══ -->
     <div id="admin-dashboard">
 
@@ -822,8 +903,7 @@
     
     <!-- ═══ COMPLETE APP LOGIC (CONNECTED TO CMS) ═══ -->
     <script type="module">
-        import { auth, GoogleAuthProvider } from './firebase-config.js';
-        import { signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { db as _firestoreDb, storage } from './firebase-config.js';
 
         // Provide window.CMS as a promise-aware reference
         const db = window.CMS; 
@@ -956,55 +1036,14 @@
         }
         injectPublishButton();
 
-        /* ──────────── AUTH ──────────── */
-        const ADMIN_EMAIL = 'infinityclassespune@gmail.com';
-
-        // Listen for Auth changes to protect dashboard
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                if (user.email === ADMIN_EMAIL) {
-                    document.getElementById('admin-login-screen').style.display = 'none';
-                    document.getElementById('admin-dashboard').style.display = 'flex';
-                    loadPanel('enquiries');
-                } else {
-                    // Unauthorized user — Force Logout
-                    await signOut(auth);
-                    const errEl = document.getElementById('login-error');
-                    errEl.style.display = 'block';
-                    errEl.textContent = 'Unauthorized access. Only '+ADMIN_EMAIL+' is allowed.';
-                    showToast('Access Denied', 'error');
-                }
-            } else {
-                document.getElementById('admin-login-screen').style.display = 'flex';
-                document.getElementById('admin-dashboard').style.display = 'none';
+        /* ──────────── AUTH (handled by standalone script above) ──────────── */
+        // Auto-load enquiries when dashboard becomes visible
+        const dashboardEl = document.getElementById('admin-dashboard');
+        new MutationObserver(() => {
+            if (dashboardEl.style.display === 'flex') {
+                loadPanel('enquiries');
             }
-        });
-
-        document.getElementById('google-login-btn').addEventListener('click', async () => {
-            const errEl = document.getElementById('login-error');
-            const btn = document.getElementById('google-login-btn');
-            const provider = new GoogleAuthProvider();
-
-            btn.disabled = true;
-            btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;"></div> Signing in...';
-            errEl.style.display = 'none';
-
-            try {
-                await signInWithPopup(auth, provider);
-                showToast('Welcome back, Admin.', 'success');
-            } catch (error) {
-                console.error(error);
-                errEl.style.display = 'block';
-                errEl.textContent = 'Authentication failed: ' + error.message;
-                btn.disabled = false;
-                btn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Sign in with Google';
-            }
-        });
-
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            await signOut(auth);
-            location.reload();
-        });
+        }).observe(dashboardEl, { attributes: true, attributeFilter: ['style'] });
 
         /* ──────────── SIDEBAR NAV ──────────── */
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -1093,12 +1132,16 @@
         };
         window.deleteEnquiry = async (id) => {
             if (!confirm('Delete this enquiry permanently?')) return;
-            await window.CMS.remove('enquiries', id);
-            showToast('Enquiry deleted'); loadEnquiries();
+            try {
+                await window.CMS.remove('enquiries', id);
+                showToast('Enquiry deleted'); loadEnquiries();
+            } catch(err) { showToast('Error deleting.','error'); console.error(err); }
         };
         document.getElementById('mark-all-read-btn').addEventListener('click', async () => {
             const snap = await window.CMS.getAll('enquiries');
-            snap.forEach(async d => { if(!d.data().read) await window.CMS.update('enquiries', d.id, {read:true,status:'read'}); });
+            const updates = [];
+            snap.forEach(d => { if(!d.data().read) updates.push(window.CMS.update('enquiries', d.id, {read:true,status:'read'})); });
+            await Promise.all(updates);
             showToast('All marked as read'); loadEnquiries();
         });
 
@@ -1239,7 +1282,9 @@
         };
         window.deleteCourse = async (id) => {
             if (!confirm('Delete this course?')) return;
-            await window.CMS.remove('courses', id); showToast('Course deleted.'); loadCoursesPanel();
+            try {
+                await window.CMS.remove('courses', id); showToast('Course deleted.'); loadCoursesPanel();
+            } catch(err) { showToast('Error deleting.','error'); console.error(err); }
         };
 
         /* ══════════════════════════════════
@@ -1278,13 +1323,7 @@
         document.getElementById('add-faculty-btn').addEventListener('click', () => showFacultyForm());
 
         async function uploadFacultyPhoto(file, docId) {
-<<<<<<< HEAD
             const url = await window.CMS.uploadImage(file);
-=======
-            const croppedBlob = await cropImage(file, 1, 600, 600);
-            if (!croppedBlob) return;
-            const url = await window.CMS.uploadImage(croppedBlob);
->>>>>>> origin/master
             let cacheBustedUrl = url;
             if (!cacheBustedUrl.startsWith('data:')) {
                 cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
@@ -1331,11 +1370,10 @@
                 const file = data.photoUrl; delete data.photoUrl;
                 try {
                     let id = docId;
-                    if (docId) window.CMS.update('faculty', docId, data);
-                    else { const r = window.CMS.add('faculty', data); id = r.id; }
+                    if (docId) await window.CMS.update('faculty', docId, data);
+                    else { const r = await window.CMS.add('faculty', data); id = r.id; }
                     
                     if (file && file instanceof File) {
-<<<<<<< HEAD
                         // Use interactive cropper even on initial save if file exists
                         window.openCropper(file, 1, async (croppedFile) => {
                             const url = await window.CMS.uploadImage(croppedFile);
@@ -1344,13 +1382,6 @@
                             area.innerHTML=''; loadFacultyPanel();
                         });
                         return; // Exit as openCropper handles the final save
-=======
-                        const croppedBlob = await cropImage(file, 1, 600, 600);
-                        if (croppedBlob) {
-                            const url = await window.CMS.uploadImage(croppedBlob);
-                            window.CMS.update('faculty', id, { photoUrl: url });
-                        }
->>>>>>> origin/master
                     }
                     showToast('Faculty saved.'); area.innerHTML=''; loadFacultyPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
@@ -1358,8 +1389,19 @@
             area.querySelector('.crud-cancel-btn').addEventListener('click', () => { area.innerHTML=''; });
         }
 
-        window.editFaculty = async (id) => { const s=await window.CMS.get('faculty',id); if(s.exists()) showFacultyForm(s.data(),id); };
-        window.deleteFaculty = async (id) => { if(!confirm('Delete?'))return; await window.CMS.remove('faculty',id); showToast('Deleted.'); loadFacultyPanel(); };
+        window.editFaculty = async (id) => { 
+            try {
+                const s=await window.CMS.get('faculty',id); 
+                if(s.exists()) showFacultyForm(s.data(),id); 
+                else showToast('Faculty not found','error');
+            } catch(err) { showToast('Error loading.','error'); }
+        };
+        window.deleteFaculty = async (id) => { 
+            if(!confirm('Delete?'))return; 
+            try {
+                await window.CMS.remove('faculty',id); showToast('Deleted.'); loadFacultyPanel(); 
+            } catch(err) { showToast('Error deleting.','error'); }
+        };
 
         /* ══════════════════════════════════
          * RESULTS (Expanded w/ rank)
@@ -1398,13 +1440,7 @@
         document.getElementById('add-result-btn').addEventListener('click', () => showResultForm());
 
         async function uploadResultPhoto(file, docId) {
-<<<<<<< HEAD
             const url = await window.CMS.uploadImage(file);
-=======
-            const croppedBlob = await cropImage(file, 1, 600, 600);
-            if (!croppedBlob) return;
-            const url = await window.CMS.uploadImage(croppedBlob);
->>>>>>> origin/master
             let cacheBustedUrl = url;
             if (!cacheBustedUrl.startsWith('data:')) {
                 cacheBustedUrl += (cacheBustedUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
@@ -1449,11 +1485,10 @@
                 const file = data.photoUrl; delete data.photoUrl;
                 try {
                     let id = docId;
-                    if (docId) window.CMS.update('results', docId, data);
-                    else { const r = window.CMS.add('results', data); id=r.id; }
+                    if (docId) await window.CMS.update('results', docId, data);
+                    else { const r = await window.CMS.add('results', data); id=r.id; }
                     
                     if (file && file instanceof File) {
-<<<<<<< HEAD
                         window.openCropper(file, 1, async (croppedFile) => {
                             const url = await window.CMS.uploadImage(croppedFile);
                             await window.CMS.update('results', id, { photoUrl: url });
@@ -1461,13 +1496,6 @@
                             area.innerHTML=''; loadResultsPanel();
                         });
                         return;
-=======
-                        const croppedBlob = await cropImage(file, 1, 600, 600);
-                        if (croppedBlob) {
-                            const url = await window.CMS.uploadImage(croppedBlob);
-                            window.CMS.update('results', id, { photoUrl: url });
-                        }
->>>>>>> origin/master
                     }
                     showToast('Result saved.'); area.innerHTML=''; loadResultsPanel();
                 } catch(err) { showToast('Error saving.','error'); console.error(err); }
@@ -1475,8 +1503,19 @@
             area.querySelector('.crud-cancel-btn').addEventListener('click', () => { area.innerHTML=''; });
         }
 
-        window.editResult = async (id) => { const s=await window.CMS.get('results',id); if(s.exists()) showResultForm(s.data(),id); };
-        window.deleteResult = async (id) => { if(!confirm('Delete?'))return; await window.CMS.remove('results',id); showToast('Deleted.'); loadResultsPanel(); };
+        window.editResult = async (id) => { 
+            try {
+                const s=await window.CMS.get('results',id); 
+                if(s.exists()) showResultForm(s.data(),id); 
+                else showToast('Result not found','error');
+            } catch(err) { showToast('Error loading.','error'); }
+        };
+        window.deleteResult = async (id) => { 
+            if(!confirm('Delete?'))return; 
+            try {
+                await window.CMS.remove('results',id); showToast('Deleted.'); loadResultsPanel(); 
+            } catch(err) { showToast('Error deleting.','error'); }
+        };
 
 
 
@@ -1584,27 +1623,34 @@
 
         window.deleteGalleryTile = async (id) => {
             if (!confirm('Are you sure you want to delete this entire gallery section?')) return;
-            await window.CMS.remove('gallery', id);
-            showToast('Section deleted.');
-            loadGalleryPanel();
+            try {
+                await window.CMS.remove('gallery', id);
+                showToast('Section deleted.');
+                loadGalleryPanel();
+            } catch(err) { showToast('Error deleting.','error'); }
         };
 
         window.updateGalleryLabel = async (id, label) => {
-            await window.CMS.update('gallery', id, { label });
-            showToast('Section renamed.');
+            try {
+                await window.CMS.update('gallery', id, { label });
+                showToast('Section renamed.');
+                loadGalleryPanel();
+            } catch(err) { showToast('Error renaming.','error'); }
         };
 
         document.getElementById('add-gallery-btn').addEventListener('click', async () => {
-            const snap = await window.CMS.getAll('gallery');
-            await window.CMS.add('gallery', { 
-                label: 'New Section', 
-                images: [], 
-                order: snap.size + 1, 
-                active: true,
-                icon: 'fa-images'
-            });
-            showToast('New gallery section added.');
-            loadGalleryPanel();
+            try {
+                const snap = await window.CMS.getAll('gallery');
+                await window.CMS.add('gallery', { 
+                    label: 'New Section', 
+                    images: [], 
+                    order: snap.size + 1, 
+                    active: true,
+                    icon: 'fa-images'
+                });
+                showToast('New gallery section added.');
+                loadGalleryPanel();
+            } catch(err) { showToast('Error adding.','error'); }
         });
 
         /* ══════════════════════════════════
@@ -1656,8 +1702,19 @@
             area.querySelector('.crud-cancel-btn').addEventListener('click', () => { area.innerHTML=''; });
         }
 
-        window.editUpdate = async (id) => { const s = await window.CMS.get('updates',id); if(s.exists()) showUpdateForm(s.data(),id); };
-        window.deleteUpdate = async (id) => { if(!confirm('Delete?'))return; await window.CMS.remove('updates',id); showToast('Deleted.'); loadUpdatesPanel(); };
+        window.editUpdate = async (id) => { 
+            try {
+                const s = await window.CMS.get('updates',id); 
+                if(s.exists()) showUpdateForm(s.data(),id); 
+                else showToast('Update not found','error');
+            } catch(err) { showToast('Error loading.','error'); }
+        };
+        window.deleteUpdate = async (id) => { 
+            if(!confirm('Delete?'))return; 
+            try {
+                await window.CMS.remove('updates',id); showToast('Deleted.'); loadUpdatesPanel(); 
+            } catch(err) { showToast('Error deleting.','error'); }
+        };
 
         /* ══════════════════════════════════
          * DRAG AND DROP REORDERING
@@ -1719,7 +1776,7 @@
         };
 
     </script>
-<<<<<<< HEAD
+
     <!-- ══════════════════════════════════
           IMAGE CROPPING MODAL (SYSTEM RESTORE)
           ══════════════════════════════════ -->
@@ -1801,7 +1858,10 @@
             cropper = null;
         };
     </script>
-=======
+
+    <!-- ═══ LOCAL CMS DATA STORE (Firebase Firestore) ═══ -->
+    <script type="module" src="cms-data.js"></script>
+
 
     <!-- ═══ IMAGE CROPPING MODAL ═══ -->
     <div class="crop-modal" id="crop-modal">
@@ -1818,6 +1878,5 @@
             </div>
         </div>
     </div>
->>>>>>> origin/master
 </body>
 </html>
