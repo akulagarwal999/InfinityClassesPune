@@ -8,15 +8,17 @@ import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
+import { ENV } from './env.js';
+
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAF1exrtwBGBU13_IGI6PLUIGGG1t7HjaU",
-  authDomain: "infinityclassespuneweb.firebaseapp.com",
-  projectId: "infinityclassespuneweb",
-  storageBucket: "infinityclassespuneweb.firebasestorage.app",
-  messagingSenderId: "929444901776",
-  appId: "1:929444901776:web:0928043d916b1d24d23915",
-  measurementId: "G-86R5KWCR0S"
+  apiKey: ENV.FIREBASE_API_KEY,
+  authDomain: ENV.FIREBASE_AUTH_DOMAIN,
+  projectId: ENV.FIREBASE_PROJECT_ID,
+  storageBucket: ENV.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: ENV.FIREBASE_MESSAGING_SENDER_ID,
+  appId: ENV.FIREBASE_APP_ID,
+  measurementId: ENV.FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
