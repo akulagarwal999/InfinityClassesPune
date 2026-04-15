@@ -128,8 +128,8 @@
                         <a href="#courses" class="btn-secondary-hero">Explore Courses</a>
                     </div>
                 </div>
-                <a href="#" class="hero-watch-link" onclick="openModal(event)">
-                    <i class="fas fa-play-circle"></i> Watch Our Story (2 min)
+                <a href="#video-section" class="hero-watch-link">
+                    <i class="fas fa-play-circle"></i> See Us In Action
                 </a>
             </div>
 
@@ -178,16 +178,6 @@
         </div>
     </div>
 
-    <!-- INTRO VIDEO MODAL -->
-    <div class="modal" id="videoModal">
-        <div class="modal-overlay" onclick="closeModal()"></div>
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal()">×</button>
-            <iframe id="modalIframe" src="" title="Infinity Classes Pune Intro Video" frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen></iframe>
-        </div>
-    </div>
 
     <!-- SECTION 3: WHY CHOOSE US -->
     <section id="why-us">
@@ -244,6 +234,8 @@
                 <input type="text" class="course-search" id="courseSearch"
                     placeholder="Search courses... e.g. 10th CBSE, JEE">
             </div>
+
+            <div id="online-course-highlight" style="display: none; margin-bottom: 3rem;"></div>
 
             <div class="courses-grid" id="courseGrid">
                 <!-- Course 1 -->
@@ -437,30 +429,15 @@
     </section>
 
     <!-- NEW FEATURE: YOUTUBE VIDEO SECTION -->
-    <section class="video-section">
-        <div class="container">
-            <div class="text-left">
+    <section class="video-section" id="video-section" style="display: none;">
+        <div class="container" style="max-width: 1000px; margin: 0 auto;">
+            <div class="text-left" style="margin-bottom: 2rem;">
                 <div class="section-label" data-aos="fade-up">See Us In Action</div>
                 <h2 class="section-heading" data-aos="fade-up" data-aos-delay="100">A Glimpse Into Our Classrooms</h2>
             </div>
-
-            <div class="video-container">
-                <div class="video-embed-wrapper" data-aos="fade-right" data-aos-delay="150" id="youtube-facade" style="position:relative; cursor:pointer; background:#000; border-radius:16px; overflow:hidden;">
-                    <img src="https://img.youtube.com/vi/aYmI0tIK9J4/maxresdefault.jpg" alt="Video Poster" style="width:100%; display:block; opacity:0.8;">
-                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:68px; height:48px; background:rgba(255,0,0,0.9); border-radius:12px; display:flex; align-items:center; justify-content:center; color:white; font-size:24px;">
-                        <i class="fas fa-play"></i>
-                    </div>
-                </div>
-                <div class="video-text-content" data-aos="fade-left" data-aos-delay="200">
-                    <h3>Real classrooms. Real students. Real results.</h3>
-                    <ul class="video-bullets">
-                        <li><i class="fas fa-check-circle"></i> Interactive teaching methodology</li>
-                        <li><i class="fas fa-check-circle"></i> Regular assessments & feedback</li>
-                        <li><i class="fas fa-check-circle"></i> Doubt clearing every session</li>
-                    </ul>
-                    <a href="https://www.youtube.com/@VokeMath" target="_blank" class="btn btn-ghost"><i
-                            class="fab fa-youtube hero-stat-icon"></i> Subscribe on
-                        YouTube</a>
+            <div class="video-container" style="display: block; width: 100%;">
+                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 16px; box-shadow: var(--shadow-lg); background: #000;" data-aos="fade-up" data-aos-delay="150">
+                    <iframe class="video-embed-iframe" src="" style="position: absolute; top:0; left: 0; width: 100%; height: 100%;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                 </div>
             </div>
         </div>
@@ -931,22 +908,6 @@
             }
         });
 
-        // Modals (outside DOMContentLoaded to be global)
-        const videoModal = document.getElementById('videoModal');
-        const modalIframe = document.getElementById('modalIframe');
-        function openModal(e) {
-            e.preventDefault();
-            videoModal.classList.add('active');
-            modalIframe.src = "https://www.youtube-nocookie.com/embed/OFq3VckdcyE?autoplay=1";
-            document.body.style.overflow = 'hidden';
-            if (window.lenis) window.lenis.stop();
-        }
-        function closeModal() {
-            videoModal.classList.remove('active');
-            modalIframe.src = "";
-            document.body.style.overflow = '';
-            if (window.lenis) window.lenis.start();
-        }
     </script>
 
     <!-- ═══ LOCAL CMS DATA STORE (Converted to Firebase Firestore) ═══ -->
@@ -998,7 +959,11 @@
             // Update YouTube embed
             if (d.youtubeVideoId) {
                 const yt = document.querySelector('.video-embed-iframe');
-                if (yt) yt.src = `https://www.youtube.com/embed/${d.youtubeVideoId}`;
+                if (yt) {
+                    yt.src = `https://www.youtube.com/embed/${d.youtubeVideoId}`;
+                    const sec = document.getElementById('video-section');
+                    if (sec) sec.style.display = 'block';
+                }
             }
 
             // Store contact_email for potential mailto links
@@ -1007,6 +972,32 @@
 
         // ── LOAD COURSES ──
         async function loadCourses() {
+            // Priority: Load Online Highlight
+            const onlineSnap = await window.CMS.get('site_settings', 'online_course_config');
+            const highlightContainer = document.getElementById('online-course-highlight');
+            if (onlineSnap && onlineSnap.exists() && highlightContainer) {
+                const onlineData = onlineSnap.data();
+                if (onlineData.photoUrl || onlineData.bodyText) {
+                    const targetUrl = onlineData.targetUrl || 'https://vokmatch.in/';
+                    highlightContainer.innerHTML = `
+                        <a href="${targetUrl}" target="_blank" class="course-card" style="display:flex; flex-direction:column; width:100%; border: 2px solid var(--accent-cyan); padding-top: ${onlineData.photoUrl ? '0' : '2.5rem'}; margin-bottom: 2rem; cursor: pointer; text-decoration: none; color: inherit; background: linear-gradient(to right, var(--bg-surface), #f4fdfd); text-align: left;" data-aos="fade-up">
+                            ${onlineData.photoUrl ? `<div style="width: calc(100% + 4rem); aspect-ratio: 21/9; margin: 0 -2rem 1.5rem -2rem; overflow: hidden; border-bottom: 1px solid rgba(0,0,0,0.05); border-radius: 12px 12px 0 0;"><img src="${onlineData.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;"></div>` : `<div class="course-icon"><i class="fas fa-laptop-code"></i></div>`}
+                            <div style="display:flex; flex-wrap: wrap; justify-content:space-between; align-items:center; width: 100%; gap: 1rem;">
+                                <div style="flex: 1; min-width: 250px;">
+                                    <span class="course-tag" style="background: var(--primary-mid); color: white;">Online Highlight</span>
+                                    <h3 class="course-title" style="margin-top: 0.5rem; font-size: 1.5rem;">Online Interactive Batches</h3>
+                                    <p style="margin-bottom: 0px;">${onlineData.bodyText || ''}</p>
+                                </div>
+                                <span style="display:inline-block; padding: 12px 24px; background: var(--accent-cyan); color: white; border-radius: 999px; font-weight: 600; font-size: 0.95rem; white-space: nowrap; transition: var(--transition);">Enroll Now &rarr;</span>
+                            </div>
+                        </a>
+                    `;
+                    highlightContainer.style.display = 'block';
+                } else {
+                    highlightContainer.style.display = 'none';
+                }
+            }
+
             const snap = await window.CMS.getAll('courses', { where: { active: true }, orderBy: 'order' });
             if (snap.empty) return;
             const container = document.getElementById('courseGrid');
@@ -1019,8 +1010,8 @@
                     ? `<div class="course-tags-container">${tags.map(t => `<span class="course-tag">${t}</span>`).join('')}</div>`
                     : `<span class="course-tag">${tags[0]}</span>`;
                 container.innerHTML += `
-                    <div class="course-card" data-aos="fade-up" data-title="${(d.title + ' ' + (d.board || '') + ' ' + (tags.join(' '))).toLowerCase()}">
-                        <div class="course-icon"><i class="fas ${d.icon || 'fa-book'}"></i></div>
+                    <div class="course-card" style="padding-top: ${d.photoUrl ? '0' : '2.5rem'}" data-aos="fade-up" data-title="${(d.title + ' ' + (d.board || '') + ' ' + (tags.join(' '))).toLowerCase()}">
+                        ${d.photoUrl ? `<div style="width: calc(100% + 4rem); aspect-ratio: 4/3; margin: 0 -2rem 1.5rem -2rem; overflow: hidden; border-bottom: 1px solid rgba(0,0,0,0.05);"><img src="${d.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;"></div>` : `<div class="course-icon"><i class="fas fa-book"></i></div>`}
                         ${tagsHtml}
                         <h3 class="course-title">${d.title}</h3>
                         <p>${d.description}</p>
@@ -1240,15 +1231,18 @@
             snap.forEach(docSnap => {
                 const d = docSnap.data();
                 const variant = variants[i % 3];
+                const tag = d.linkUrl ? 'a' : 'div';
+                const hrefAttr = d.linkUrl ? `href="${d.linkUrl}" target="_blank"` : '';
                 container.innerHTML += `
-                    <div class="update-card ${variant}" data-aos="fade-up">
-                        <div class="update-icon"><i class="far fa-calendar-alt"></i></div>
+                    <${tag} ${hrefAttr} class="update-card ${variant}" style="padding-top: ${d.photoUrl ? '0' : '2.5rem'}; ${d.linkUrl ? 'cursor: pointer; text-decoration: none; color: inherit;' : ''}" data-aos="fade-up">
+                        ${d.photoUrl ? `<div style="width: calc(100% + 5rem); aspect-ratio: 4/3; margin: 0 -2.5rem 1.5rem -2.5rem; overflow: hidden; border-radius: 12px 12px 0 0; border-bottom: 1px solid rgba(0,0,0,0.05); flex-shrink: 0;"><img src="${d.photoUrl}" style="width: 100%; height: 100%; object-fit: cover; display: block;"></div>` : ''}
                         <div class="update-content">
                             <span class="update-date">${d.date || ''}</span>
                             <h3>${d.title}</h3>
                             <p>${d.body || ''}</p>
+                            ${d.linkUrl ? `<span style="display:inline-block; margin-top: 1.2rem; color: var(--accent-cyan); font-weight: 600; font-size: 0.9rem; transition: transform 0.2s;">View Update &rarr;</span>` : ''}
                         </div>
-                    </div>`;
+                    </${tag}>`;
                 i++;
             });
             if (typeof AOS !== 'undefined') AOS.refresh();
